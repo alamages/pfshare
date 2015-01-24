@@ -1,2 +1,3 @@
-# pfshare
-Python File Share over HTTP script
+# Info
+
+script and readme under construction...
