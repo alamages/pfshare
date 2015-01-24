@@ -18,6 +18,17 @@ upnp_conf = {
 	'protocol' : 'TCP', 
 }
 
+def clean_up():
+	logger.info('Clean up function was called')
+	if upnpc:
+		logger.info('Deleting port mapping...')
+		upnpc.deleteportmapping(upnp_conf['external_port'],
+								upnp_conf['protocol'], '')
+	else:
+		logger.info('Nothing to clean up.')
+
+atexit.register(clean_up)
+
 def parse_args():
 	parser = argparse.ArgumentParser()
 
@@ -45,14 +56,16 @@ def port_mapping(port):
 	upnpc = UPnP()
 	upnpc.discover()
 
-    #igd = upnpc.selectigd()
-    #external_ip = upnpc.externalipaddress()
-    #connection_type = upnpc.connectiontype()
-    #local_ip = upnpc.lanaddr
-    #AddPortMapping(externalPort, protocol, internalHost, internalPort, desc,
-    #              remoteHost)
-    #status = upnpc.addportmapping(8000, 'TCP', local_ip, 8000, "", "")
-    #logger.info(status)
+    external_ip = upnpc.externalipaddress()    
+    local_ip = upnpc.lanaddr
+    # externalPort, protocol, internalHost, internalPort, desc,
+    # remoteHost)
+	logger.info('UPnP port mapping, port: '.format(port))
+    success = upnpc.addportmapping(port, upnp_conf['protocol'], 
+    							   local_ip, port, 'pfshare upnp', '')
+    if not success:
+    	logger.error('Error occured in port mapping function!')
+    	sys.exit(1)
 
 def main():
 	args, extras = parse_args()
@@ -70,6 +83,6 @@ def main():
 	if not no_nat:
 		port_mapping(args.port)
 
-	# TODO
+	
 if __name__ == "__main__":
     main()
