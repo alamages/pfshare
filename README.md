@@ -11,7 +11,7 @@ Dependencies
 
 Usage
 --------
-For available arguments run the script with `-h` argument (or `--help)`  
+For available arguments run the script with `-h` argument (or `--help`)  
 Some usage examples:
 
 `$ # serves the current directory behind NAT in a random port`  
