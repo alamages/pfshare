@@ -7,6 +7,7 @@ import sys
 import atexit
 import logging
 import argparse
+import socket
 import random
 from miniupnpc import UPnP
 
@@ -28,6 +29,27 @@ def clean_up():
 
 atexit.register(clean_up)
 
+# this has the problem that is won't work if you don't
+# have internet access
+def get_local_ip():
+    msocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        msocket.connect(('foss.aueb.gr', 80))
+    except (Exception, e):
+    	logging.error('Error occured while resolving local ip.')
+    	logging.exception(e)
+    	sys.exit(1)
+    else:
+        local_ip = msocket.getsockname()[0]
+        msocket.close()
+        return local_ip
+
+def get_port(port):
+    # if port is not provided choose a random
+    if not port:
+        port = random.randint(7000, 8000)
+    return port
+
 def parse_args():
     parser = argparse.ArgumentParser()
 
@@ -36,18 +58,11 @@ def parse_args():
                         If not provided a random is choosed')
     parser.add_argument('-v', '--verbose', dest='be_verbose', default=False,
                         action='store_true', help='Be verbose.')
-    parser.add_argument('-n', '--no-nat', dest='no_nat', default=False,
+    parser.add_argument('-l', '--local', dest='local', default=False,
                         action='store_true', help='Do not do port mapping in \
                         in case the client is not behind NAT or client wants to\
                         share in LAN.')
     return parser.parse_known_args()
-
-def get_port(port):
-    # if port is not provided choose a random
-    if not port:
-        port = random.randint(7000, 8000)
-
-    return port
 
 def port_mapping(port):
     upnp_conf['external_port'] = port
@@ -67,7 +82,8 @@ def port_mapping(port):
     if not success:
         logging.error('Error occured in port mapping function!')
         sys.exit(1)
-
+    
+    return external_ip
 def main():
     args, extras = parse_args()
     
@@ -84,9 +100,12 @@ def main():
     external_ip = None
 
     # usually the client will be behind NAT
-    if not args.no_nat:
-        port_mapping(port)
+    if not args.local:
+        external_ip = port_mapping(port)
+    else:
+        external_ip = get_local_ip()
 
-
+    logging.info('External ip: %s' % external_ip)
+    
 if __name__ == "__main__":
     main()
