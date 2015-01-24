@@ -3,12 +3,14 @@
 # Copyright 2015: Emmanouil Kiagias <e.kiagias@gmail.com>
 # License: GPLv3
 #
+import os
 import sys
 import atexit
 import logging
 import argparse
 import socket
 import random
+from http.server import HTTPServer, socketserver, SimpleHTTPRequestHandler
 from miniupnpc import UPnP
 
 upnpc = None
@@ -35,9 +37,8 @@ def get_local_ip():
     msocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         msocket.connect(('foss.aueb.gr', 80))
-    except (Exception, e):
-    	logging.error('Error occured while resolving local ip.')
-    	logging.exception(e)
+    except Exception:
+    	logging.exception('Error occured while resolving local ip.')
     	sys.exit(1)
     else:
         local_ip = msocket.getsockname()[0]
@@ -52,17 +53,18 @@ def get_port(port):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-
+    parser.add_argument('-d', '--directory', dest='input_dir', type=str, default='.',
+                        help='Directory to serve. Default is the current dir.')
     parser.add_argument('-p', '--port', dest='port', type=int, default=None,
                         help='Port which the http server will listen. \
                         If not provided a random is choosed')
-    parser.add_argument('-v', '--verbose', dest='be_verbose', default=False,
-                        action='store_true', help='Be verbose.')
+    parser.add_argument('-q', '--quiet', dest='be_quiet', default=False,
+                        action='store_true', help='Be quiet.')
     parser.add_argument('-l', '--local', dest='local', default=False,
                         action='store_true', help='Do not do port mapping in \
                         in case the client is not behind NAT or client wants to\
                         share in LAN.')
-    return parser.parse_known_args()
+    return parser.parse_args()
 
 def port_mapping(port):
     upnp_conf['external_port'] = port
@@ -84,17 +86,21 @@ def port_mapping(port):
         sys.exit(1)
     
     return external_ip
+
 def main():
-    args, extras = parse_args()
+    args = parse_args()
     
-    if len(extras) != 0:
-        logging.error('A single file or directory is allowed!')
-        sys.exit(1)
-    if args.be_verbose:
-        logging.basicConfig(level=logging.INFO, format='logme: %(message)s')
-        logging.info('Verbose mode enabled.')
+    if args.be_quiet:
+        logging.basicConfig(format='logme: %(message)s')
     else:
-    	logging.basicConfig(format='logme: %(message)s')
+        logging.basicConfig(level=logging.INFO, format='logme: %(message)s')
+    
+    if not os.path.isdir(args.input_dir):
+    	logging.error('%s is not a valid directory!' % args.input_dir)
+    	sys.exit(1)
+    else:
+   	    # cd to the path which will be served
+    	os.chdir(args.input_dir)
 
     port = get_port(args.port)
     external_ip = None
@@ -105,7 +111,14 @@ def main():
     else:
         external_ip = get_local_ip()
 
-    logging.info('External ip: %s' % external_ip)
+    #logging.info('External ip: %s' % external_ip)
     
-if __name__ == "__main__":
+    # start the HTTP server:
+    handler = SimpleHTTPRequestHandler
+    httpd = HTTPServer(('', port), handler)
+
+    logging.error('Server is up at: http://%s:%d/' % (external_ip, port))
+    httpd.serve_forever()
+
+if __name__ == '__main__':
     main()
