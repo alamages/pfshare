@@ -10,7 +10,7 @@ import logging
 import argparse
 import socket
 import random
-from http.server import HTTPServer, socketserver, SimpleHTTPRequestHandler
+from http.server import HTTPServer, SimpleHTTPRequestHandler
 from miniupnpc import UPnP
 
 upnpc = None
@@ -38,8 +38,8 @@ def get_local_ip():
     try:
         msocket.connect(('foss.aueb.gr', 80))
     except Exception:
-    	logging.exception('Error occured while resolving local ip.')
-    	sys.exit(1)
+        logging.exception('Error occured while resolving local ip.')
+        sys.exit(1)
     else:
         local_ip = msocket.getsockname()[0]
         msocket.close()
@@ -62,7 +62,7 @@ def parse_args():
                         action='store_true', help='Be quiet.')
     parser.add_argument('-l', '--local', dest='local', default=False,
                         action='store_true', help='Do not do port mapping in \
-                        in case the client is not behind NAT or client wants to\
+                        case the client is not behind NAT or client wants to\
                         share in LAN.')
     return parser.parse_args()
 
@@ -84,23 +84,23 @@ def port_mapping(port):
     if not success:
         logging.error('Error occured in port mapping function!')
         sys.exit(1)
-    
+
     return external_ip
 
 def main():
     args = parse_args()
-    
+
     if args.be_quiet:
         logging.basicConfig(format='logme: %(message)s')
     else:
         logging.basicConfig(level=logging.INFO, format='logme: %(message)s')
-    
+
     if not os.path.isdir(args.input_dir):
-    	logging.error('%s is not a valid directory!' % args.input_dir)
-    	sys.exit(1)
+        logging.error('%s is not a valid directory!' % args.input_dir)
+        sys.exit(1)
     else:
-   	    # cd to the path which will be served
-    	os.chdir(args.input_dir)
+        # cd to the path which will be served
+        os.chdir(args.input_dir)
 
     port = get_port(args.port)
     external_ip = None
@@ -112,7 +112,7 @@ def main():
         external_ip = get_local_ip()
 
     #logging.info('External ip: %s' % external_ip)
-    
+
     # start the HTTP server:
     handler = SimpleHTTPRequestHandler
     httpd = HTTPServer(('', port), handler)
